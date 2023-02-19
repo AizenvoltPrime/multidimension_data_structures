@@ -14,7 +14,7 @@ user_input_start_letter = input("Please insert start letter:")
 
 user_input_end_letter = input("Please insert end letter:")
 
-user_input = input("Please insert number of awards:")
+user_input_awards = int(input("Please insert number of awards:"))
 
 names_in_range = []
 for i in range(1,len(data)):
@@ -23,7 +23,7 @@ for i in range(1,len(data)):
     
 threshold_data = []
 for i in range(1,len(names_in_range)):
-    if int(names_in_range[i][1]) > int(user_input):
+    if int(names_in_range[i][1]) > int(user_input_awards):
         threshold_data.append(names_in_range[i])
         
 
