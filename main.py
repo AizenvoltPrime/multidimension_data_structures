@@ -8,6 +8,7 @@ from scipy.spatial import KDTree
 from nltk.corpus import stopwords
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity
+from datasketch import MinHashLSHForest, MinHash
 
 with open('scrapdata.csv') as scrapdata:
     reader = csv.reader(scrapdata)
@@ -44,48 +45,32 @@ def preprocess_education(threshold_data):
             shingle_tokens.append(token)
     return shingle_tokens
 
-# Define the number of hash functions and the length of the feature vector
-num_hashes = 10
-feature_len = 20
-
-# Define the hashing function
-def hash_token(shingle, seed):
-    hash_val = mmh3.hash(shingle, seed)
-    bit_string = bin(hash_val)  # remove the '0b' prefix from the binary string
-    bit_string = bit_string[3:]
-    feature_vector = [int(bit) for bit in bit_string]
-    feature_vector = feature_vector[-feature_len:]
-    feature_vector += [0] * (feature_len - len(feature_vector))
-    return feature_vector
-
 # Define the feature vector for an education field
-def education_feature_vector(threshold_data):
-    feature_vector = [0] * feature_len
-    education_tokens = preprocess_education(threshold_data)
-    for i in range(len(education_tokens) - 2):
-        shingle = education_tokens[i] + " " + education_tokens[i + 1] + " " + education_tokens[i + 2] 
-        for j in range(num_hashes):
-            token_feature = hash_token(shingle, j)
-            for k in range(len(token_feature)):
-                feature_vector[k] += token_feature[k]
-    return feature_vector
+def education_feature_vector(education):
+    shingles = preprocess_education(education)
+    m = MinHash(num_perm=128)
+    for shingle in shingles:
+        m.update(shingle.encode('utf-8'))
+    return m
 
-for i in range(len(threshold_data)):
-    hash_vector = education_feature_vector(threshold_data[i][2])
-
+# Create LSH forest
+num_perm = 128
 n_neighbors = 5
-nn = NearestNeighbors(n_neighbors=n_neighbors, algorithm='auto', metric='euclidean')
+lsh_forest = MinHashLSHForest(num_perm=num_perm)
+for i in range(len(threshold_data)):
+    m = education_feature_vector(threshold_data[i][2])
+    lsh_forest.add(str(i), m)
 
-education_vectors=[]
-for row in threshold_data:
-    education_vectors.append(education_feature_vector(row[2]))
-nn.fit(education_vectors)
+# Index the LSH forest
+lsh_forest.index()
 
-# Query the NearestNeighbors model to find similar education fields
+# Query the LSH forest to find similar education fields
 query_education = threshold_data[4][2]
-query_vector = education_feature_vector(query_education)
-similar_indices = nn.kneighbors([query_vector], n_neighbors=5, return_distance=False)[0]
+query_m = education_feature_vector(query_education)
+result = lsh_forest.query(query_m, n_neighbors)
+similar_indices = [int(idx) for idx in result]
 
-print(threshold_data[4][2],"\n\n")
+# Print the original and similar education fields
+print(query_education, "\n")
 for val in similar_indices:
-    print(threshold_data[val][2],"\n\n\n")  
+    print(threshold_data[val][2], "\n")
