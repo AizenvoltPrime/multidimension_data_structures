@@ -2,6 +2,7 @@ import csv
 import nltk
 import string
 nltk.download('stopwords')
+from scipy.spatial import KDTree
 from nltk.corpus import stopwords
 from datasketch import MinHashLSHForest, MinHash
 
@@ -48,13 +49,15 @@ def education_feature_vector(education):
         m.update(shingle.encode('utf-8'))
     return m
 
-# Create LSH forest
+# Create LSH forest and implement KD-Tree
 num_perm = 128
 n_neighbors = 5
+feature_vectors = []
 lsh_forest = MinHashLSHForest(num_perm=num_perm)
 for i in range(len(threshold_data)):
     m = education_feature_vector(threshold_data[i][2])
     lsh_forest.add(str(i), m)
+    feature_vectors.append(list(m.hashvalues))
 
 # Index the LSH forest
 lsh_forest.index()
@@ -63,9 +66,28 @@ lsh_forest.index()
 query_education = threshold_data[4][2]
 query_m = education_feature_vector(query_education)
 result = lsh_forest.query(query_m, n_neighbors)
-similar_indices = [int(idx) for idx in result]
+similar_indices_lsh = [int(idx) for idx in result]
 
-# Print the original and similar education fields
-print(query_education, "\n")
-for val in similar_indices:
+#Create KD-Tree    
+kd_tree = KDTree(feature_vectors)
+
+# Query the kd-tree to find similar education fields
+distances, indices = kd_tree.query([list(query_m.hashvalues)], k=n_neighbors)
+similar_indices_kd = indices[0].tolist()
+
+# Combine the results from LSH and kd-tree
+similar_indices_combined = list(set(similar_indices_lsh) | set(similar_indices_kd))
+
+# # # Print the original and similar education fields
+# print(query_education, "\n")
+# print("These are the LSH most similar Educations: \n\n")
+# for val in similar_indices_lsh:
+#     print(threshold_data[val][2], "\n")
+    
+# print("These are the KD most similar Educations: \n\n")
+# for val in similar_indices_kd:
+#     print(threshold_data[val][2], "\n")
+
+print("This is the union of the most similar Educations: \n\n")
+for val in similar_indices_combined:
     print(threshold_data[val][2], "\n")
