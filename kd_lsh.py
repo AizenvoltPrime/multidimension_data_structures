@@ -24,7 +24,7 @@ def query_kd_tree(range_low, range_high):
     result = data.iloc[ind]
     result = result[result['first_letter'] >= range_low[0].upper()]
     result = result[result['first_letter'] <= range_high[0].upper()]
-    return result
+    return result.iloc[:, :3]
 print(query_kd_tree("L", "R"))
 # # Convert education to vector representation using TF-IDF 
 # vectorizer = TfidfVectorizer() # Create vectorizer object
