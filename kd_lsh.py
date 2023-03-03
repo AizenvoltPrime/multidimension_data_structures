@@ -1,93 +1,55 @@
-import csv
-import nltk
-import string
-nltk.download('stopwords')
-from scipy.spatial import KDTree
-from nltk.corpus import stopwords
-from datasketch import MinHashLSHForest, MinHash
+# Import libraries
+import pandas as pd
+import numpy as np
 
-with open('scrapdata.csv') as scrapdata:
-    reader = csv.reader(scrapdata)
-    data = list(reader)
-    
-user_input_start_letter = input("Please insert start letter:")
+# Read data from scrapdata.csv
+from sklearn.neighbors import KDTree
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import TfidfVectorizer
+from datasketch import MinHashLSHForest, MinHash,MinHashLSH
 
-user_input_end_letter = input("Please insert end letter:")
+data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", 
+"education"])
 
-user_input_awards = int(input("Please insert number of awards:"))
+# Build a k-d tree using surname and awards
+le = LabelEncoder()
+data['first_letter'] = data['surname'].str[0]
+X = data[["first_letter"]].values # Convert to numpy array
+X[:,0] = le.fit_transform(X[:,0]) # Transform surname column
+print(X[:,0])
+tree = KDTree(X) # Create k-d tree object
+def query_kd_tree(range_low, range_high):
+    low = ord(range_low[0].upper())
+    ind = tree.query([[low]], k=len(X), return_distance=False)[0]
+    result = data.iloc[ind]
+    result = result[result['first_letter'] >= range_low[0].upper()]
+    result = result[result['first_letter'] <= range_high[0].upper()]
+    return result
+print(query_kd_tree("L", "R"))
+# # Convert education to vector representation using TF-IDF 
+# vectorizer = TfidfVectorizer() # Create vectorizer object
+# Y = vectorizer.fit_transform(data["education"]) # Fit and transform education texts
+# # Apply MinHash on vectors to create hash signatures 
+# lsh = MinHashLSH(threshold=0.2) # Create MinHashLSH object with similarity threshold (you can change this)
+# for i in range(Y.shape[0]): # Loop over each vector 
+#     mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this)
+#     for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector 
+#         mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+#         lsh.insert(i, mh, check_duplication=False) # Insert index and MinHash into LSH
 
-names_in_range = []
-for i in range(1,len(data)):
-    if data[i][0][0] >= user_input_start_letter and data[i][0][0] <=user_input_end_letter:
-        names_in_range.append(data[i])
-    
-threshold_data = []
-for i in range(0,len(names_in_range)):
-    if int(names_in_range[i][1]) >= int(user_input_awards):
-        threshold_data.append(names_in_range[i])
-        
+# # Define a function that returns points based on query vector and similarity percentage (not needed anymore)
+# def query_lsh(vector):
+#     mh_query = MinHash(num_perm=128) # Create MinHash object for query vector 
+#     for j in vector.nonzero()[1]: # Loop over each non-zero element in vector 
+#         mh_query.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+#         result = lsh.query(mh_query) # Query LSH with query MinHash and get result as a list of indices 
+#     return result 
 
-# Define stop words to remove from the education field
-stop_words = set(stopwords.words('english'))
+# # Combine both functions to answer queries of the form: "Find computer scientists from scrapdata.csv with >60% education similarity, whose letter is in the interval [A, G], and who have won > 4 awards."
+# def query_combined(range_low,range_high,threshold):
+#     result1 = query_kd_tree(range_low,range_high, threshold) # Query k-d tree first 
+#     result2 = query_lsh(Y[result1.index]) # Query LSH on the subset of result1  
+#     return data.iloc[result2] # Return final result as a pandas dataframe 
 
-# Tokenize and preprocess the education field
-def preprocess_education(threshold_data):
-    threshold_data = threshold_data.lower() # Convert to lowercase
-    threshold_data = threshold_data.translate(str.maketrans('', '', string.punctuation))
-    education_tokens = threshold_data.split() # Tokenize
-    shingle_tokens = []
-    for token in education_tokens:
-        if token not in stop_words:
-            shingle_tokens.append(token)
-    return shingle_tokens
-
-# Define the feature vector for an education field
-def education_feature_vector(education):
-    shingles = preprocess_education(education)
-    m = MinHash(num_perm=128)
-    for shingle in shingles:
-        m.update(shingle.encode('utf-8'))
-    return m
-
-# Create LSH forest and implement KD-Tree
-num_perm = 128
-n_neighbors = 5
-feature_vectors = []
-lsh_forest = MinHashLSHForest(num_perm=num_perm)
-for i in range(len(threshold_data)):
-    m = education_feature_vector(threshold_data[i][2])
-    lsh_forest.add(str(i), m)
-    feature_vectors.append(list(m.hashvalues))
-
-# Index the LSH forest
-lsh_forest.index()
-
-# Query the LSH forest to find similar education fields
-query_education = threshold_data[4][2]
-query_m = education_feature_vector(query_education)
-result = lsh_forest.query(query_m, n_neighbors)
-similar_indices_lsh = [int(idx) for idx in result]
-
-#Create KD-Tree    
-kd_tree = KDTree(feature_vectors)
-
-# Query the kd-tree to find similar education fields
-distances, indices = kd_tree.query([list(query_m.hashvalues)], k=n_neighbors)
-similar_indices_kd = indices[0].tolist()
-
-# Combine the results from LSH and kd-tree
-similar_indices_combined = list(set(similar_indices_lsh) | set(similar_indices_kd))
-
-# # # Print the original and similar education fields
-# print(query_education, "\n")
-# print("These are the LSH most similar Educations: \n\n")
-# for val in similar_indices_lsh:
-#     print(threshold_data[val][2], "\n")
-    
-# print("These are the KD most similar Educations: \n\n")
-# for val in similar_indices_kd:
-#     print(threshold_data[val][2], "\n")
-
-print("This is the union of the most similar Educations: \n\n")
-for val in similar_indices_combined:
-    print(threshold_data[val][2], "\n")
+# # Test with an example query 
+# print(query_combined("A","Z", 1)) # Remove 4 from the arguments
