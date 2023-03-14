@@ -1,31 +1,28 @@
 # Import libraries
 import pandas as pd
-import numpy as np
-
-# Read data from scrapdata.csv
 from sklearn.neighbors import KDTree
 from sklearn.preprocessing import LabelEncoder
-from sklearn.feature_extraction.text import TfidfVectorizer
-from datasketch import MinHashLSHForest, MinHash,MinHashLSH
 
-data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", 
-"education"])
+# Read data from scrapdata.csv
+data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"])
 
 # Build a k-d tree using surname and awards
 le = LabelEncoder()
 data['first_letter'] = data['surname'].str[0]
-X = data[["first_letter"]].values # Convert to numpy array
+X = data[["surname", "awards"]].values # Convert to numpy array
 X[:,0] = le.fit_transform(X[:,0]) # Transform surname column
-print(X[:,0])
 tree = KDTree(X) # Create k-d tree object
-def query_kd_tree(range_low, range_high):
+
+def query_kd_tree(range_low, range_high, num_awards):
     low = ord(range_low[0].upper())
-    ind = tree.query([[low]], k=len(X), return_distance=False)[0]
+    ind = tree.query([[low,num_awards]], k=len(X), return_distance=False)[0]
     result = data.iloc[ind]
     result = result[result['first_letter'] >= range_low[0].upper()]
     result = result[result['first_letter'] <= range_high[0].upper()]
+    result = result[result['awards'] >= num_awards]
     return result.iloc[:, :3]
-print(query_kd_tree("L", "R"))
+
+print(query_kd_tree("A", "R", 0))
 # # Convert education to vector representation using TF-IDF 
 # vectorizer = TfidfVectorizer() # Create vectorizer object
 # Y = vectorizer.fit_transform(data["education"]) # Fit and transform education texts
