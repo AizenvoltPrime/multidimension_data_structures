@@ -1,14 +1,9 @@
-# Import libraries
 import pandas as pd
-import numpy as np
 
-# Read data from scrapdata.csv
 from sklearn.neighbors import KDTree
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
-from datasketch import MinHashLSHForest, MinHash,MinHashLSH
-from sklearn.cluster import DBSCAN
-from sklearn.preprocessing import normalize
+from datasketch import MinHash,MinHashLSH
 
 first_letter = input("Enter first letter: ")
 last_letter = input("Enter last letter: ")
