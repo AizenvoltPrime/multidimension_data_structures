@@ -1,5 +1,4 @@
 import pandas as pd
-
 from sklearn.neighbors import KDTree
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer

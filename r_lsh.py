@@ -1,5 +1,5 @@
 import pandas as pd
-from pyqtree import Index as QuadTree
+from rtree import index
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from datasketch import MinHash,MinHashLSH
@@ -13,36 +13,34 @@ sim_threshold /= 100
 # Read data from scrapdata.csv
 data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"])
 
-# Build a quadtree using surname and awards
+# Build an R-tree using surname and awards
 le = LabelEncoder()
-data['first_letter'] = data['surname'].str[0].str.upper()
-X = data[["first_letter", "awards"]].values # Convert to numpy array
+data['first_letter'] = data['surname'].str[0]
+X = data[["surname", "awards"]].values # Convert to numpy array
+X[:,0] = le.fit_transform(X[:,0]) # Transform surname column
 
-le.fit(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
-X[:,0] = le.transform(X[:,0]) # Transform first_letter column
-
-bbox = (X[:,0].min(), X[:,1].min(), X[:,0].max(), X[:,1].max())
-quadtree = QuadTree(bbox)
-
+p = index.Property()
+idx = index.Index(properties=p)
 for i in range(len(X)):
-    x, y = X[i]
-    quadtree.insert(i, (x, y, x, y))
+    idx.insert(i, (X[i][0], X[i][1], X[i][0], X[i][1]))
 
-def query_quad_tree(range_low, range_high, num_awards):
-    low = le.transform([range_low])[0]
-    high = le.transform([range_high])[0]
-    query_bbox = (low, num_awards+1,high, data['awards'].max())
-    matches = quadtree.intersect(query_bbox)
-    result = data.iloc[list(matches)]
+def query_r_tree(range_low, range_high, num_awards):
+    low = ord(range_low[0].upper())
+    high = ord(range_high[0].upper())
+    result_indices = list(idx.intersection((low,num_awards+1,high,float('inf'))))
+    result = data.iloc[result_indices]
+    result = result[result['first_letter'] >= range_low[0].upper()]
+    result = result[result['first_letter'] <= range_high[0].upper()]
+    result = result[result['awards'] > num_awards]
     return result.iloc[:, :3]
 
-quad_tree_builder = query_quad_tree(first_letter.upper(), last_letter.upper(), awards)
+lsh_builder=query_r_tree(first_letter,last_letter,awards)
 
-print("The LSH indexes are: ", quad_tree_builder)
+print("The R-Tree indexes are: ", lsh_builder)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(quad_tree_builder.iloc[:,2]) # Fit and transform education texts
+Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold = sim_threshold) # Create MinHashLSH object
 for i in range(Y.shape[0]): # Loop over each vector 
@@ -70,12 +68,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
         if i == 0:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
         elif i == 1:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
         elif i == 2:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
         else:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
         for j in range(len(final_result[i])):
-            print(data['surname'][quad_tree_builder.index[final_result[i][j]]]," \t| " ,data['awards'][quad_tree_builder.index[final_result[i][j]]]," \t| ",data['education'][quad_tree_builder.index[final_result[i][j]]], "\n\n")
+            print(data['surname'][lsh_builder.index[final_result[i][j]]]," \t| " ,data['awards'][lsh_builder.index[final_result[i][j]]]," \t| ",data['education'][lsh_builder.index[final_result[i][j]]], "\n\n")
