@@ -52,6 +52,7 @@ sim_threshold /= 100
 
 # Read data from scrapdata.csv 
 data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"]) 
+data.index.name = "original_index"
 
 # Build a range tree using surname and awards 
 le = LabelEncoder() 
@@ -68,11 +69,12 @@ def query_range_tree(range_low, range_high, num_awards):
     result_df.columns=["surname", "awards"] 
     result_df["education"] = data.loc[result_df.index]["education"].values 
     result_df["first_letter"] = data.loc[result_df.index]["first_letter"].values
-    return result_df 
+    return result_df
 
-lsh_builder = query_range_tree(first_letter,last_letter , awards) 
+lsh_builder = query_range_tree(first_letter, last_letter , awards) 
 
-print("The LSH indexes are: ", lsh_builder)
+print("The LSH indexes are: ", lsh_builder.columns, "\n\n\n\n")
+print("The LSH indexes are: ", lsh_builder, "\n\n\n\n")
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
