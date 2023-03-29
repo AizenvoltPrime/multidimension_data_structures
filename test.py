@@ -52,14 +52,12 @@ sim_threshold /= 100
 
 # Read data from scrapdata.csv 
 data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"]) 
-data.index.name = "original_index"
 
 # Build a range tree using surname and awards 
 le = LabelEncoder() 
 data['first_letter'] = data['surname'].str[0] 
 X = data[["surname", "awards"]].values 
 X[:,0] = le.fit_transform(X[:,0]) 
-
 tree = RangeTree(X) 
 
 def query_range_tree(range_low, range_high, num_awards): 
@@ -73,8 +71,16 @@ def query_range_tree(range_low, range_high, num_awards):
 
 lsh_builder = query_range_tree(first_letter, last_letter , awards) 
 
-print("The LSH indexes are: ", lsh_builder.columns, "\n\n\n\n")
-print("The LSH indexes are: ", lsh_builder, "\n\n\n\n")
+print(lsh_builder)
+for i in range(len(lsh_builder)): 
+    print(lsh_builder.iloc[i]['surname'], "LSH \n\n\n\n\n")
+    # for j in range(len(data)):
+        # print(data.index[j], "DATA \n\n\n\n\n")
+        # if data.index[j] == lsh_builder.iloc[i]['surname']:
+            # print(data.iloc[lsh_builder.iloc[i]['surname']]['surname'], "\n\n\n")
+            # print(data.iloc[j]['awards'])
+            # print(data.iloc[j]['education'])
+#print("The LSH indexes are: ", lsh_builder, "\n\n\n\n")
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object

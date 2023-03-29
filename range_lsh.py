@@ -1,14 +1,16 @@
 import pandas as pd
+import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
-from datasketch import MinHash,MinHashLSH
+from datasketch import MinHash, MinHashLSH
 
 class Node:
     def __init__(self, point):
         self.point = point
         self.left = None
         self.right = None
+        self.y_tree = None
 
 class RangeTree:
     def __init__(self, points):
@@ -22,68 +24,110 @@ class RangeTree:
         node = Node(points[mid])
         node.left = self.build(points[:mid])
         node.right = self.build(points[mid+1:])
+        node.y_tree = RangeTree1D(points[:, 1])
         return node
 
-    def query(self, x_min, x_max, y_min, y_max):
+    def query(self, x_min, x_max, y_min=None, y_max=None):
         return self._query(self.root, x_min, x_max, y_min, y_max)
 
-    def _query(self, node, x_min, x_max, y_min, y_max):
+    def _query(self, node, x_min, x_max, y_min=None, y_max=None):
         if not node:
             return []
 
-        if x_min <= node.point[0] <= x_max and y_min <= node.point[1] <= y_max:
-            return [node.point]
+        result = []
+        if x_min <= node.point[0] <= x_max:
+            result.extend(node.y_tree.query(y_min, y_max))
 
         if node.left and x_min <= node.point[0]:
-            result = self._query(node.left, x_min, x_max, y_min, y_max)
-        else:
-            result = []
+            result.extend(self._query(node.left, x_min, x_max, y_min, y_max))
 
         if node.right and x_max >= node.point[0]:
-            result += self._query(node.right, x_min, x_max, y_min, y_max)
+            result.extend(self._query(node.right, x_min, x_max, y_min, y_max))
 
         return result
 
-first_letter = input("Enter first letter: ") 
-last_letter = input("Enter last letter: ") 
-awards = int(input("Enter number of awards: ")) 
-sim_threshold = int(input("Enter threshold: ")) 
-sim_threshold /= 100 
+class Node1D:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
 
-# Read data from scrapdata.csv 
-data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"]) 
+class RangeTree1D:
+    def __init__(self, values):
+        self.root = self.build(values)
 
-# Build a range tree using surname and awards 
-le = LabelEncoder() 
-data['first_letter'] = data['surname'].str[0] 
-X = data[["surname", "awards"]].values 
-X[:,0] = le.fit_transform(X[:,0]) 
+    def build(self, values):
+        if not values.any():
+            return None
 
-tree = RangeTree(X) 
+        mid = len(values) // 2
+        node = Node1D(values[mid])
+        node.left = self.build(values[:mid])
+        node.right = self.build(values[mid+1:])
+        return node
 
-def query_range_tree(range_low, range_high, num_awards): 
-    low = ord(range_low[0].upper()) 
-    result = tree.query(low-1, ord(range_high[0].upper()), num_awards-1,num_awards) 
-    result_df = pd.DataFrame(result) 
-    result_df.columns=["surname", "awards"] 
-    result_df["education"] = data.loc[result_df.index]["education"].values 
-    result_df["first_letter"] = data.loc[result_df.index]["first_letter"].values
-    return result_df 
+    def query(self, min_value=None, max_value=None):
+        return self._query(self.root,min_value=min_value,max_value=max_value)
 
-lsh_builder = query_range_tree(first_letter,last_letter , awards) 
+    def _query(self,node,min_value=None,max_value=None):
+        if not node:
+            return []
+
+        result = []
+        if (min_value is None or min_value <= node.value) and (max_value is None or node.value <= max_value):
+            result.append(node.value)
+
+        if node.left and (min_value is None or min_value <= node.value):
+            result.extend(self._query(node.left,min_value=min_value,max_value=max_value))
+
+        if node.right and (max_value is None or max_value >= node.value):
+            result.extend(self._query(node.right,min_value=min_value,max_value=max_value))
+
+        return result
+
+first_letter = input("Enter first letter: ")
+last_letter = input("Enter last letter: ")
+awards = int(input("Enter number of awards: "))
+sim_threshold = int(input("Enter threshold: "))
+sim_threshold /= 100
+
+# Read data from scrapdata.csv
+data = pd.read_csv("scrapdata.csv", header=None,names=["surname", "awards", "education"])
+
+# Build a range tree using surname and awards
+le = LabelEncoder()
+data['first_letter'] = data['surname'].str[0]
+X = data[["surname", "awards"]].values.reshape(-1, 2)
+X[:, 0] = le.fit_transform(X[:, 0])
+
+tree = RangeTree(X)
+
+
+def query_range_tree(range_low, range_high, num_awards):
+    ind = tree.query(ord(range_low[0].upper()), ord(range_high[0].upper()), num_awards-1)
+    print(ind)
+    result = data.iloc[ind]
+    result = result[result['first_letter'] >= range_low[0].upper()]
+    result = result[result['first_letter'] <= range_high[0].upper()]
+    result = result[result['awards'] > num_awards]
+    return result.iloc[:, :3]
+
+
+lsh_builder = query_range_tree(first_letter, last_letter, awards)
 
 print("The LSH indexes are: ", lsh_builder)
 
-# Convert education to vector representation using TF-IDF 
-vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts
-# Apply MinHash on vectors to create hash signatures 
-lsh = MinHashLSH(threshold = sim_threshold) # Create MinHashLSH object
-for i in range(Y.shape[0]): # Loop over each vector 
-    mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this)
-    for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector 
-        mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
-        lsh.insert(i, mh, check_duplication=False) # Insert index and MinHash into LSH
+# Convert education to vector representation using TF-IDF
+vectorizer = TfidfVectorizer()  # Create vectorizer object
+Y = vectorizer.fit_transform(lsh_builder.iloc[:, 2])  # Fit and transform education texts
+# Apply MinHash on vectors to create hash signatures
+lsh = MinHashLSH(threshold=sim_threshold)  # Create MinHashLSH object
+for i in range(Y.shape[0]):  # Loop over each vector
+    mh = MinHash(num_perm=128)  # Create MinHash object with 10 permutations (you can change this)
+    for j in Y[i].nonzero()[1]:  # Loop over each non-zero element in vector
+        mh.update(str(j).encode('utf8'))  # Update MinHash with element value encoded as bytes
+        lsh.insert(i, mh,check_duplication=False)  # Insert index and MinHash into LSH
+
 
 def query_lsh(matrix):
     results = []
