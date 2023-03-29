@@ -82,8 +82,8 @@ class RangeTree1D:
 
         if node.right and (max_value is None or max_value >= node.value):
             result.extend(self._query(node.right,min_value=min_value,max_value=max_value))
-
-        return result
+        print(list(set(result)))
+        return list(set(result))
 
 first_letter = input("Enter first letter: ")
 last_letter = input("Enter last letter: ")
@@ -104,12 +104,8 @@ tree = RangeTree(X)
 
 
 def query_range_tree(range_low, range_high, num_awards):
-    ind = tree.query(ord(range_low[0].upper()), ord(range_high[0].upper()), num_awards-1)
-    print(ind)
-    result = data.iloc[ind]
-    result = result[result['first_letter'] >= range_low[0].upper()]
-    result = result[result['first_letter'] <= range_high[0].upper()]
-    result = result[result['awards'] > num_awards]
+    mask = (data['first_letter'] >= range_low[0].upper()) & (data['first_letter'] <= range_high[0].upper()) & (data['awards'] > num_awards)
+    result = data[mask]
     return result.iloc[:, :3]
 
 
