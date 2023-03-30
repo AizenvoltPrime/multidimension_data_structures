@@ -81,7 +81,6 @@ class RangeTree1D:
 
         if node.right and (max_value is None or max_value >= node.value):
             result.extend(self._query(node.right,min_value=min_value,max_value=max_value))
-        print(list(set(result)))
         return list(set(result))
 
 first_letter = input("Enter first letter: ")
