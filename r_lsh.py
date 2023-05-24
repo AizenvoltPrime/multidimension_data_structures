@@ -4,6 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from datasketch import MinHash,MinHashLSH
 
+# Get user inputs for first letter, last letter, number of awards and similarity threshold
 first_letter = input("Enter first letter: ")
 last_letter = input("Enter last letter: ")
 awards = int(input("Enter number of awards: "))
@@ -25,6 +26,7 @@ for i in range(len(X)):
     idx.insert(i, (X[i][0], X[i][1], X[i][0], X[i][1]))
 
 def query_r_tree(range_low, range_high, num_awards):
+    # Query the R-tree to find surnames within the given range and with more than the given number of awards
     low = ord(range_low[0].upper())
     high = ord(range_high[0].upper())
     result_indices = list(idx.intersection((low,num_awards+1,high,float('inf'))))
@@ -41,6 +43,7 @@ print("The R-Tree indexes are: ", lsh_builder)
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
 Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts
+
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold = sim_threshold) # Create MinHashLSH object
 for i in range(Y.shape[0]): # Loop over each vector 
@@ -68,12 +71,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
         if i == 0:
-            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
         elif i == 1:
-            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
         elif i == 2:
-            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
         else:
-            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
         for j in range(len(final_result[i])):
             print(data['surname'][lsh_builder.index[final_result[i][j]]]," \t| " ,data['awards'][lsh_builder.index[final_result[i][j]]]," \t| ",data['education'][lsh_builder.index[final_result[i][j]]], "\n\n")

@@ -4,6 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from datasketch import MinHash,MinHashLSH
 
+# Get user inputs for first letter, last letter, number of awards and similarity threshold
 first_letter = input("Enter first letter: ")
 last_letter = input("Enter last letter: ")
 awards = int(input("Enter number of awards: "))
@@ -29,6 +30,7 @@ for i in range(len(X)):
     quadtree.insert(i, (x, y, x, y))
 
 def query_quad_tree(range_low, range_high, num_awards):
+    # Query the quadtree to find surnames within the given range and with more than the given number of awards
     low = le.transform([range_low])[0]
     high = le.transform([range_high])[0]
     query_bbox = (low, num_awards+1,high, data['awards'].max())
@@ -43,6 +45,7 @@ print("The LSH indexes are: ", quad_tree_builder)
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
 Y = vectorizer.fit_transform(quad_tree_builder.iloc[:,2]) # Fit and transform education texts
+
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold = sim_threshold) # Create MinHashLSH object
 for i in range(Y.shape[0]): # Loop over each vector 
@@ -70,12 +73,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
         if i == 0:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with: ")
         elif i == 1:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with: ")
         elif i == 2:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with: ")
         else:
-            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with:   ")
+            print("The scientist with the name", data['surname'][quad_tree_builder.index[i]], "is similar with: ")
         for j in range(len(final_result[i])):
             print(data['surname'][quad_tree_builder.index[final_result[i][j]]]," \t| " ,data['awards'][quad_tree_builder.index[final_result[i][j]]]," \t| ",data['education'][quad_tree_builder.index[final_result[i][j]]], "\n\n")
