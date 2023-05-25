@@ -27,23 +27,25 @@ class RangeTree:
         return node
 
     def query(self, x_min, x_max, y_min=None, y_max=None):
-        return self._query(self.root, x_min, x_max, y_min, y_max)
-
-    def _query(self, node, x_min, x_max, y_min=None, y_max=None):
-        if not node:
-            return []
-
         result = []
+        self._query(self.root, x_min, x_max, y_min, y_max, result)
+        return result
+
+    def _query(self, node, x_min, x_max, y_min=None, y_max=None, result=None):
+        if not node:
+            return
+
         if x_min <= node.point[0] <= x_max:
-            result.extend(node.y_tree.query(y_min, y_max))
+            y_result = node.y_tree.query(y_min, y_max)
+            for y in y_result:
+                result.append((node.point[0], y))
 
         if node.left and x_min <= node.point[0]:
-            result.extend(self._query(node.left, x_min, x_max, y_min, y_max))
+            self._query(node.left, x_min, x_max, y_min, y_max,result)
 
         if node.right and x_max >= node.point[0]:
-            result.extend(self._query(node.right, x_min, x_max, y_min, y_max))
+            self._query(node.right, x_min, x_max, y_min, y_max,result)
 
-        return result
 
 class Node1D:
     def __init__(self, value):
@@ -102,9 +104,23 @@ tree = RangeTree(X)
 
 
 def query_range_tree(range_low, range_high, num_awards):
-    mask = (data['first_letter'] >= range_low[0].upper()) & (data['first_letter'] <= range_high[0].upper()) & (data['awards'] > num_awards)
-    result = data[mask]
-    return result.iloc[:, :3]
+    # Get the first and last letters as integers
+    first_letter = ord(range_low[0].upper())
+    last_letter = ord(range_high[0].upper())
+    
+    # Query the tree with the given range and number of awards
+    result = tree.query(first_letter, last_letter, num_awards)
+    
+    # Convert the result to a DataFrame
+    result = pd.DataFrame(result, columns=['surname', 'awards'])
+    
+    # Decode the surname values
+    result['surname'] = le.inverse_transform(result['surname'])
+    
+    # Merge with the original data to get the education column
+    result = pd.merge(result, data[['surname', 'education']], on='surname')
+    
+    return result
 
 
 lsh_builder = query_range_tree(first_letter, last_letter, awards)
