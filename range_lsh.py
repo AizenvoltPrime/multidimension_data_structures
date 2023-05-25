@@ -6,15 +6,15 @@ from datasketch import MinHash, MinHashLSH
 # Define a Node class for the 2D Range Tree
 class Node:
     def __init__(self, point):
-        self.point = point
-        self.left = None
-        self.right = None
-        self.y_tree = None
+        self.point = point  # Point in the 2D space (x, y)
+        self.left = None  # Left child node
+        self.right = None  # Right child node
+        self.y_tree = None  # 1D Range Tree for y-coordinates
 
 # Define a RangeTree class for the 2D Range Tree
 class RangeTree:
     def __init__(self, points):
-        self.root = self.build(points)
+        self.root = self.build(points)  # Build the 2D Range Tree
 
     # Build the 2D Range Tree recursively
     def build(self, points):
@@ -22,16 +22,16 @@ class RangeTree:
             return None
 
         mid = len(points) // 2
-        node = Node(points[mid])
-        node.left = self.build(points[:mid])
-        node.right = self.build(points[mid+1:])
-        node.y_tree = RangeTree1D(points[:, 1])
+        node = Node(points[mid])  # Create a node for the middle point
+        node.left = self.build(points[:mid])  # Recursively build the left subtree
+        node.right = self.build(points[mid+1:])  # Recursively build the right subtree
+        node.y_tree = RangeTree1D(points[:, 1])  # Build the 1D Range Tree for y-coordinates
         return node
 
-    # Query the 2D Range Tree for points within a given range
+# Query the 2D Range Tree for points within a given range
     def query(self, x_min, x_max, y_min=None, y_max=None):
         result = []
-        self._query(self.root, x_min, x_max, y_min, y_max, result)
+        self._query(self.root, x_min, x_max, y_min, y_max, result)  # Start recursive querying
         return result
 
     # Helper function to query the 2D Range Tree recursively
@@ -40,27 +40,28 @@ class RangeTree:
             return
 
         if x_min <= node.point[0] <= x_max:
+            # Query the 1D Range Tree for y-coordinates within the given range
             y_result = node.y_tree.query(y_min, y_max)
             for y in y_result:
-                result.append((node.point[0], y))
+                result.append((node.point[0], y))  # Add the point to the result
 
         if node.left and x_min <= node.point[0]:
-            self._query(node.left, x_min, x_max, y_min, y_max,result)
+            self._query(node.left, x_min, x_max, y_min, y_max, result)  # Recurse on the left subtree
 
         if node.right and x_max >= node.point[0]:
-            self._query(node.right, x_min, x_max, y_min, y_max,result)
+            self._query(node.right, x_min, x_max, y_min, y_max, result)  # Recurse on the right subtree
 
 # Define a Node1D class for the 1D Range Tree
 class Node1D:
     def __init__(self, value):
-        self.value = value
-        self.left = None
-        self.right = None
+        self.value = value  # Value in the 1D space
+        self.left = None  # Left child node
+        self.right = None  # Right child node
 
 # Define a RangeTree1D class for the 1D Range Tree
 class RangeTree1D:
     def __init__(self, values):
-        self.root = self.build(values)
+        self.root = self.build(values)  # Build the 1D Range Tree
 
     # Build the 1D Range Tree recursively
     def build(self, values):
@@ -68,31 +69,31 @@ class RangeTree1D:
             return None
 
         mid = len(values) // 2
-        node = Node1D(values[mid])
-        node.left = self.build(values[:mid])
-        node.right = self.build(values[mid+1:])
+        node = Node1D(values[mid])  # Create a node for the middle value
+        node.left = self.build(values[:mid])  # Recursively build the left subtree
+        node.right = self.build(values[mid+1:])  # Recursively build the right subtree
         return node
 
     # Query the 1D Range Tree for values within a given range
     def query(self, min_value=None, max_value=None):
-        return self._query(self.root,min_value=min_value,max_value=max_value)
+        return self._query(self.root, min_value=min_value, max_value=max_value)  # Start recursive querying
 
     # Helper function to query the 1D Range Tree recursively
-    def _query(self,node,min_value=None,max_value=None):
+    def _query(self, node, min_value=None, max_value=None):
         if not node:
             return []
 
         result = []
         if (min_value is None or min_value <= node.value) and (max_value is None or node.value <= max_value):
-            result.append(node.value)
+            result.append(node.value)  # Add the value to the result if it falls within the range
 
         if node.left and (min_value is None or min_value <= node.value):
-            result.extend(self._query(node.left,min_value=min_value,max_value=max_value))
+            result.extend(self._query(node.left, min_value=min_value, max_value=max_value))  # Recurse on the left subtree
 
         if node.right and (max_value is None or max_value >= node.value):
-            result.extend(self._query(node.right,min_value=min_value,max_value=max_value))
+            result.extend(self._query(node.right, min_value=min_value, max_value=max_value))  # Recurse on the right subtree
         
-        return list(set(result))
+        return list(set(result))  # Return the unique values in the result
 
 # Get user input for first letter of surname range, last letter of surname range, minimum number of awards, and similarity threshold for education text.
 first_letter = input("Enter first letter: ")
