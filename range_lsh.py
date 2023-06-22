@@ -135,7 +135,7 @@ def query_range_tree(range_low, range_high, num_awards):
 
 lsh_builder = query_range_tree(first_letter, last_letter, awards)
 
-print("The LSH indexes are: ", lsh_builder)
+print("The LSH indexes are: \n", lsh_builder)
 
 # Convert education to vector representation using TF-IDF.
 vectorizer = TfidfVectorizer() # Create vectorizer object.
