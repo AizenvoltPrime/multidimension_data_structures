@@ -33,7 +33,7 @@ def query_kd_tree(range_low, range_high, num_awards):
 
 lsh_builder = query_kd_tree(first_letter, last_letter, awards)
 
-print("The LSH indexes are: \n", lsh_builder)
+print("The KD-tree query results are: \n", lsh_builder)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object

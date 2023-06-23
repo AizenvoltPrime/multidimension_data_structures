@@ -38,7 +38,7 @@ def query_r_tree(range_low, range_high, num_awards):
 
 lsh_builder=query_r_tree(first_letter,last_letter,awards)
 
-print("The R-Tree indexes are: \n", lsh_builder)
+print("The R-tree query results are: \n", lsh_builder)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object

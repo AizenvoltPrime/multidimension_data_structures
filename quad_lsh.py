@@ -40,7 +40,7 @@ def query_quad_tree(range_low, range_high, num_awards):
 
 quad_tree_builder = query_quad_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The LSH indexes are: \n", quad_tree_builder)
+print("The Quad-tree query results are: \n", quad_tree_builder)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
