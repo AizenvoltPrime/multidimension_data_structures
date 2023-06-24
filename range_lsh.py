@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from datasketch import MinHash, MinHashLSH
@@ -102,6 +103,7 @@ awards = int(input("Enter number of awards: "))
 sim_threshold = int(input("Enter threshold: "))
 sim_threshold /= 100
 
+start_time = time.time()
 # Read data from scrapdata.csv containing information about scientists' surnames, number of awards, and education
 data = pd.read_csv("scrapdata.csv", header=None,names=["surname", "awards", "education"])
 
@@ -154,6 +156,10 @@ def query_lsh(matrix):
 
 final_result = query_lsh(Y)
 print("The groups of similarities are: ", final_result,"\n\n\n\n")
+
+end_time = time.time()
+
+print("Time taken to run the script: ", end_time - start_time)
 
 count = 0
 for i in range(len(final_result)):
