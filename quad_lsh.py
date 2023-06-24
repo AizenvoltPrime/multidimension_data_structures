@@ -36,6 +36,7 @@ def query_quad_tree(range_low, range_high, num_awards):
     query_bbox = (low, num_awards+1,high, data['awards'].max())
     matches = quadtree.intersect(query_bbox)
     result = data.iloc[list(matches)]
+    result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
 
 quad_tree_builder = query_quad_tree(first_letter.upper(), last_letter.upper(), awards)

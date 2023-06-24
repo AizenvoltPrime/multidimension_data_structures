@@ -35,6 +35,7 @@ def query_r_tree(range_low, range_high, num_awards):
     query_r = (low, num_awards+1, high, data['awards'].max())
     matches = list(rtree.intersection(query_r))
     result = data.iloc[list(matches)]
+    result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
 
 r_tree_builder = query_r_tree(first_letter.upper(), last_letter.upper(), awards)
