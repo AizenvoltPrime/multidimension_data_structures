@@ -28,7 +28,7 @@ class RangeTree:
         node.y_tree = RangeTree1D(points[:, 1])  # Build the 1D Range Tree for y-coordinates
         return node
 
-# Query the 2D Range Tree for points within a given range
+    # Query the 2D Range Tree for points within a given range
     def query(self, x_min, x_max, y_min=None, y_max=None):
         result = []
         self._query(self.root, x_min, x_max, y_min, y_max, result)  # Start recursive querying
@@ -95,69 +95,60 @@ class RangeTree1D:
         
         return list(set(result))  # Return the unique values in the result
 
-# Get user input for first letter of surname range, last letter of surname range, minimum number of awards, and similarity threshold for education text.
+# Get user input for first letter of surname range, last letter of surname range, minimum number of awards, and similarity threshold for education text
 first_letter = input("Enter first letter: ")
 last_letter = input("Enter last letter: ")
 awards = int(input("Enter number of awards: "))
 sim_threshold = int(input("Enter threshold: "))
 sim_threshold /= 100
 
-# Read data from scrapdata.csv containing information about scientists' surnames, number of awards, and education.
+# Read data from scrapdata.csv containing information about scientists' surnames, number of awards, and education
 data = pd.read_csv("scrapdata.csv", header=None,names=["surname", "awards", "education"])
 
-# Build a range tree using surname and awards.
+# Build a range tree using surname and awards
 le = LabelEncoder()
-data['first_letter'] = data['surname'].str[0]
-X = data[["surname", "awards"]].values.reshape(-1, 2)
-X[:, 0] = le.fit_transform(X[:, 0])
+le.fit(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+data['first_letter'] = le.transform(data['surname'].str[0].str.upper())
+X = data[["first_letter", "awards"]].values.reshape(-1, 2)
 
 tree = RangeTree(X)
 
-# Define a function to query the range tree for scientists within a given surname range and with a minimum number of awards.
+# Define a function to query the range tree for scientists within a given surname range and with a minimum number of awards
 def query_range_tree(range_low, range_high, num_awards):
-    # Get the first and last letters as integers.
-    first_letter = ord(range_low[0].upper())
-    last_letter = ord(range_high[0].upper())
+    # Filter the data based on the given surname range and number of awards
+    mask = (data['surname'].str[0].str.upper() >= range_low.upper()) & (data['surname'].str[0].str.upper() <= range_high.upper()) & (data['awards'] > num_awards)
+    result = data[mask]
     
-    # Query the tree with the given range and number of awards.
-    result = tree.query(first_letter, last_letter, num_awards)
+    # Sort the resulting DataFrame by its index
+    result = result.sort_index()
     
-    # Convert the result to a DataFrame.
-    result = pd.DataFrame(result, columns=['surname', 'awards'])
-    
-    # Decode the surname values.
-    result['surname'] = le.inverse_transform(result['surname'])
-    
-    # Merge with the original data to get the education column.
-    result = pd.merge(result, data[['surname', 'education']], on='surname')
-    
-    return result
+    return result.iloc[:, :3]
 
-lsh_builder = query_range_tree(first_letter, last_letter, awards)
+
+lsh_builder = query_range_tree(first_letter.upper(), last_letter.upper(), awards)
 
 print("The Range-tree query results are: \n", lsh_builder)
 
-# Convert education to vector representation using TF-IDF.
-vectorizer = TfidfVectorizer() # Create vectorizer object.
-Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts.
+# Convert education to vector representation using TF-IDF 
+vectorizer = TfidfVectorizer() # Create vectorizer object
+Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts
 
-# Apply MinHash on vectors to create hash signatures.
-lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object.
-for i in range(Y.shape[0]): # Loop over each vector.
-    mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this).
-    for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector.
-        mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes.
-        lsh.insert(i, mh,check_duplication=False) # Insert index and MinHash into LSHs
+# Apply MinHash on vectors to create hash signatures 
+lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
+for i in range(Y.shape[0]): # Loop over each vector 
+    mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this)
+    for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector 
+        mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+    lsh.insert(i, mh, check_duplication=True) # Insert index and MinHash into LSH, checking for duplicates
 
-# Define a function to query LSH for groups of scientists with similar education based on a user-defined similarity threshold.
 def query_lsh(matrix):
     results = []
     for i in range(matrix.shape[0]):
         vector = matrix[i]
-        mh_query = MinHash(num_perm=128) # Create MinHash object for query vector. 
-        for j in vector.nonzero()[1]: # Loop over each non-zero element in vector. 
-            mh_query.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes. 
-            result = lsh.query(mh_query) # Query LSH with query MinHash and get result as a list of indices. 
+        mh_query = MinHash(num_perm=128) # Create MinHash object for query vector 
+        for j in vector.nonzero()[1]: # Loop over each non-zero element in vector 
+            mh_query.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+            result = lsh.query(mh_query) # Query LSH with query MinHash and get result as a list of indices
         results.append(result)
     return results 
 
