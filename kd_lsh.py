@@ -28,14 +28,12 @@ def query_kd_tree(range_low, range_high, num_awards):
     # Query the KDTree to find surnames within the given range and with more than the given number of awards
     low = le.transform([range_low])[0]
     high = le.transform([range_high])[0]
-    query_bbox = (low, num_awards+1)
-    matches = kdtree.query_radius([query_bbox], r=high-low)[0]
+    query_kd = (low, num_awards+1)
+    matches = kdtree.query_radius([query_kd], r=high-low)[0]
     result = data.iloc[list(matches)]
     result = result[result['awards'] > num_awards] # Filter out rows that do not meet the specified number of awards
     result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
-
-
 
 kd_tree_builder = query_kd_tree(first_letter.upper(), last_letter.upper(), awards)
 
