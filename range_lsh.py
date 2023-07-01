@@ -127,13 +127,13 @@ def query_range_tree(range_low, range_high, num_awards):
     return result.iloc[:, :3]
 
 
-lsh_builder = query_range_tree(first_letter.upper(), last_letter.upper(), awards)
+range_tree_query_results = query_range_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The Range-tree query results are: \n", lsh_builder)
+print("The Range-tree query results are: \n", range_tree_query_results)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(lsh_builder.iloc[:,2]) # Fit and transform education texts
+Y = vectorizer.fit_transform(range_tree_query_results.iloc[:,2]) # Fit and transform education texts
 
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
@@ -166,12 +166,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
     if i == 0:
-        print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
+        print("The scientist with the name", data['surname'][range_tree_query_results.index[i]], "is similar with: ")
     elif i == 1:
-        print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
+        print("The scientist with the name", data['surname'][range_tree_query_results.index[i]], "is similar with: ")
     elif i == 2:
-        print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
+        print("The scientist with the name", data['surname'][range_tree_query_results.index[i]], "is similar with: ")
     else:
-        print("The scientist with the name", data['surname'][lsh_builder.index[i]], "is similar with: ")
+        print("The scientist with the name", data['surname'][range_tree_query_results.index[i]], "is similar with: ")
     for j in range(len(final_result[i])):
-        print(data['surname'][lsh_builder.index[final_result[i][j]]]," \t| " ,data['awards'][lsh_builder.index[final_result[i][j]]]," \t| ",data['education'][lsh_builder.index[final_result[i][j]]], "\n\n")
+        print(data['surname'][range_tree_query_results.index[final_result[i][j]]]," \t| " ,data['awards'][range_tree_query_results.index[final_result[i][j]]]," \t| ",data['education'][range_tree_query_results.index[final_result[i][j]]], "\n\n")

@@ -26,6 +26,7 @@ X[:,0] = le.transform(X[:,0]) # Transform first_letter column
 
 rtree = RTree()
 
+# Insert each data point into the R-tree
 for i in range(len(X)):
     x, y = X[i]
     rtree.insert(i, (x, y, x, y))
@@ -40,13 +41,13 @@ def query_r_tree(range_low, range_high, num_awards):
     result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
 
-r_tree_builder = query_r_tree(first_letter.upper(), last_letter.upper(), awards)
+r_tree_query_results = query_r_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The R-tree query results are: \n", r_tree_builder)
+print("The R-tree query results are: \n", r_tree_query_results)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(r_tree_builder.iloc[:,2]) # Fit and transform education texts
+Y = vectorizer.fit_transform(r_tree_query_results.iloc[:,2]) # Fit and transform education texts
 
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
@@ -79,12 +80,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
         if i == 0:
-            print("The scientist with the name", data['surname'][r_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][r_tree_query_results.index[i]], "is similar with: ")
         elif i == 1:
-            print("The scientist with the name", data['surname'][r_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][r_tree_query_results.index[i]], "is similar with: ")
         elif i == 2:
-            print("The scientist with the name", data['surname'][r_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][r_tree_query_results.index[i]], "is similar with: ")
         else:
-            print("The scientist with the name", data['surname'][r_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][r_tree_query_results.index[i]], "is similar with: ")
         for j in range(len(final_result[i])):
-            print(data['surname'][r_tree_builder.index[final_result[i][j]]]," \t| " ,data['awards'][r_tree_builder.index[final_result[i][j]]]," \t| ",data['education'][r_tree_builder.index[final_result[i][j]]], "\n\n")
+            print(data['surname'][r_tree_query_results.index[final_result[i][j]]]," \t| " ,data['awards'][r_tree_query_results.index[final_result[i][j]]]," \t| ",data['education'][r_tree_query_results.index[final_result[i][j]]], "\n\n")

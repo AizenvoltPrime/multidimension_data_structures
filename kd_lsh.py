@@ -37,13 +37,13 @@ def query_kd_tree(range_low, range_high, num_awards):
     result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
 
-kd_tree_builder = query_kd_tree(first_letter.upper(), last_letter.upper(), awards)
+kd_tree_query_results = query_kd_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The KD-tree query results are: \n", kd_tree_builder)
+print("The KD-tree query results are: \n", kd_tree_query_results)
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(kd_tree_builder.iloc[:,2]) # Fit and transform education texts
+Y = vectorizer.fit_transform(kd_tree_query_results.iloc[:,2]) # Fit and transform education texts
 
 # Apply MinHash on vectors to create hash signatures 
 lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
@@ -76,12 +76,12 @@ for i in range(len(final_result)):
     if len(final_result[i]) > 1:
         print("\n\n")
         if i == 0:
-            print("The scientist with the name", data['surname'][kd_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][kd_tree_query_results.index[i]], "is similar with: ")
         elif i == 1:
-            print("The scientist with the name", data['surname'][kd_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][kd_tree_query_results.index[i]], "is similar with: ")
         elif i == 2:
-            print("The scientist with the name", data['surname'][kd_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][kd_tree_query_results.index[i]], "is similar with: ")
         else:
-            print("The scientist with the name", data['surname'][kd_tree_builder.index[i]], "is similar with: ")
+            print("The scientist with the name", data['surname'][kd_tree_query_results.index[i]], "is similar with: ")
         for j in range(len(final_result[i])):
-            print(data['surname'][kd_tree_builder.index[final_result[i][j]]]," \t| " ,data['awards'][kd_tree_builder.index[final_result[i][j]]]," \t| ",data['education'][kd_tree_builder.index[final_result[i][j]]], "\n\n")
+            print(data['surname'][kd_tree_query_results.index[final_result[i][j]]]," \t| " ,data['awards'][kd_tree_query_results.index[final_result[i][j]]]," \t| ",data['education'][kd_tree_query_results.index[final_result[i][j]]], "\n\n")
