@@ -104,57 +104,57 @@ sim_threshold = int(input("Enter threshold: "))
 sim_threshold /= 100
 
 start_time = time.time()
-# Read data from scrapdata.csv containing information about scientists' surnames, number of awards, and education
-data = pd.read_csv("scrapdata.csv", header=None,names=["surname", "awards", "education"])
+for loops in range(20):
+    # Read data from scrapdata.csv containing information about scientists' surnames, number of awards, and education
+    data = pd.read_csv("scrapdata.csv", header=None,names=["surname", "awards", "education"])
 
-# Build a range tree using surname and awards
-le = LabelEncoder()
-le.fit(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
-data['first_letter'] = le.transform(data['surname'].str[0].str.upper())
-X = data[["first_letter", "awards"]].values.reshape(-1, 2)
+    # Build a range tree using surname and awards
+    le = LabelEncoder()
+    le.fit(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+    data['first_letter'] = le.transform(data['surname'].str[0].str.upper())
+    X = data[["first_letter", "awards"]].values.reshape(-1, 2)
 
-tree = RangeTree(X)
+    tree = RangeTree(X)
 
-# Define a function to query the range tree for scientists within a given surname range and with a minimum number of awards
-def query_range_tree(range_low, range_high, num_awards):
-    # Filter the data based on the given surname range and number of awards
-    mask = (data['surname'].str[0].str.upper() >= range_low.upper()) & (data['surname'].str[0].str.upper() <= range_high.upper()) & (data['awards'] > num_awards)
-    result = data[mask]
+    # Define a function to query the range tree for scientists within a given surname range and with a minimum number of awards
+    def query_range_tree(range_low, range_high, num_awards):
+        # Filter the data based on the given surname range and number of awards
+        mask = (data['surname'].str[0].str.upper() >= range_low.upper()) & (data['surname'].str[0].str.upper() <= range_high.upper()) & (data['awards'] > num_awards)
+        result = data[mask]
+        
+        # Sort the resulting DataFrame by its index
+        result = result.sort_index()
+        
+        return result.iloc[:, :3]
+
+    range_tree_query_results = query_range_tree(first_letter.upper(), last_letter.upper(), awards)
+
+    # Convert education to vector representation using TF-IDF 
+    vectorizer = TfidfVectorizer() # Create vectorizer object
+    Y = vectorizer.fit_transform(range_tree_query_results.iloc[:,2]) # Fit and transform education texts
+
+    # Apply MinHash on vectors to create hash signatures 
+    lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
+    for i in range(Y.shape[0]): # Loop over each vector 
+        mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this)
+        for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector 
+            mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+        lsh.insert(i, mh, check_duplication=True) # Insert index and MinHash into LSH, checking for duplicates
+
+    def query_lsh(matrix):
+        results = []
+        for i in range(matrix.shape[0]):
+            vector = matrix[i]
+            mh_query = MinHash(num_perm=128) # Create MinHash object for query vector 
+            for j in vector.nonzero()[1]: # Loop over each non-zero element in vector 
+                mh_query.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
+                result = lsh.query(mh_query) # Query LSH with query MinHash and get result as a list of indices
+            results.append(result)
+        return results 
+
+    final_result = query_lsh(Y)
     
-    # Sort the resulting DataFrame by its index
-    result = result.sort_index()
-    
-    return result.iloc[:, :3]
-
-
-range_tree_query_results = query_range_tree(first_letter.upper(), last_letter.upper(), awards)
-
 print("The Range-tree query results are: \n", range_tree_query_results, "\n\n")
-
-# Convert education to vector representation using TF-IDF 
-vectorizer = TfidfVectorizer() # Create vectorizer object
-Y = vectorizer.fit_transform(range_tree_query_results.iloc[:,2]) # Fit and transform education texts
-
-# Apply MinHash on vectors to create hash signatures 
-lsh = MinHashLSH(threshold=sim_threshold) # Create MinHashLSH object
-for i in range(Y.shape[0]): # Loop over each vector 
-    mh = MinHash(num_perm=128) # Create MinHash object with 10 permutations (you can change this)
-    for j in Y[i].nonzero()[1]: # Loop over each non-zero element in vector 
-        mh.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
-    lsh.insert(i, mh, check_duplication=True) # Insert index and MinHash into LSH, checking for duplicates
-
-def query_lsh(matrix):
-    results = []
-    for i in range(matrix.shape[0]):
-        vector = matrix[i]
-        mh_query = MinHash(num_perm=128) # Create MinHash object for query vector 
-        for j in vector.nonzero()[1]: # Loop over each non-zero element in vector 
-            mh_query.update(str(j).encode('utf8')) # Update MinHash with element value encoded as bytes 
-            result = lsh.query(mh_query) # Query LSH with query MinHash and get result as a list of indices
-        results.append(result)
-    return results 
-
-final_result = query_lsh(Y)
 print("The groups of similarities are: ", final_result, "\n\n")
 
 end_time = time.time()
