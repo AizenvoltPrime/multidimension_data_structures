@@ -16,7 +16,7 @@ start_time = time.time()
 # Read data from scrapdata.csv
 data = pd.read_csv("scrapdata.csv", header=None, names=["surname", "awards", "education"])
 
-# Build a KDTree using surname and awards
+# Build a KD-tree using surname and awards
 le = LabelEncoder()
 data['first_letter'] = data['surname'].str[0].str.upper()
 X = data[["first_letter", "awards"]].values # Convert to numpy array
@@ -27,19 +27,19 @@ X[:,0] = le.transform(X[:,0]) # Transform first_letter column
 kdtree = KDTree(X)
 
 def query_kd_tree(range_low, range_high, num_awards):
-    # Query the KDTree to find surnames within the given range and with more than the given number of awards
+    # Query the KD-tree to find surnames within the given range and with more than the given number of awards
     low = le.transform([range_low])[0]
     high = le.transform([range_high])[0]
-    query_kd = (low, num_awards+1)
-    matches = kdtree.query_radius([query_kd], r=high-low)[0]
-    result = data.iloc[list(matches)]
-    result = result[result['awards'] > num_awards] # Filter out rows that do not meet the specified number of awards
+    query_r = (low, num_awards+1)
+    dist, ind = kdtree.query([query_r], k=len(X))
+    result = data.iloc[ind[0]]
+    result = result[(result['first_letter'] >= range_low) & (result['first_letter'] <= range_high) & (result['awards'] > num_awards)]
     result = result.sort_index() # Sort the resulting DataFrame by its index
     return result.iloc[:, :3]
 
 kd_tree_query_results = query_kd_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The KD-tree query results are: \n", kd_tree_query_results)
+print("The KD-tree query results are: \n", kd_tree_query_results, "\n\n")
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
@@ -65,7 +65,7 @@ def query_lsh(matrix):
     return results 
 
 final_result = query_lsh(Y)
-print("The groups of similarities are: ", final_result, "\n\n\n\n")
+print("The groups of similarities are: ", final_result, "\n\n")
 
 end_time = time.time()
 

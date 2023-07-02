@@ -47,7 +47,7 @@ def query_quad_tree(range_low, range_high, num_awards):
 
 quad_tree_query_results = query_quad_tree(first_letter.upper(), last_letter.upper(), awards)
 
-print("The Quad-tree query results are: \n", quad_tree_query_results)
+print("The Quad-tree query results are: \n", quad_tree_query_results, "\n\n")
 
 # Convert education to vector representation using TF-IDF 
 vectorizer = TfidfVectorizer() # Create vectorizer object
@@ -73,7 +73,7 @@ def query_lsh(matrix):
     return results 
 
 final_result = query_lsh(Y)
-print("The groups of similarities are: ", final_result, "\n\n\n\n")
+print("The groups of similarities are: ", final_result, "\n\n")
 
 end_time = time.time()
 
